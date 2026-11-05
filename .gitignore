@@ -1,0 +1,29 @@
+# Binaries
+/terraform-provider-wedos
+/bin/
+dist/
+
+# Terraform working files from manual runs
+.terraform/
+.terraform.lock.hcl
+*.tfstate
+*.tfstate.*
+*.tfvars
+.terraformrc
+terraform.rc
+
+# Local credentials
+.env
+*.env
+
+# Editors and OS
+.idea/
+.vscode/
+.DS_Store
+
+# Key material
+*.gpg
+*.asc
+*.pem
+*.key
+*.tfplan

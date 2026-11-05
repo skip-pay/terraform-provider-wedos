@@ -1,0 +1,20 @@
+name: Feature request
+description: A resource, attribute or behaviour the provider does not have yet.
+labels: [enhancement]
+body:
+  - type: textarea
+    id: need
+    attributes:
+      label: What do you need to do?
+    validations:
+      required: true
+  - type: textarea
+    id: api
+    attributes:
+      label: WEDOS API
+      description: The WEDOS REST API endpoints involved, if you know them (https://kb.wedos.global/api-manual/).
+  - type: textarea
+    id: config
+    attributes:
+      label: Proposed configuration
+      render: hcl

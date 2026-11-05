@@ -1,0 +1,45 @@
+name: Bug report
+description: Something does not work as documented.
+labels: [bug]
+body:
+  - type: input
+    id: provider-version
+    attributes:
+      label: Provider version
+      placeholder: v0.1.0
+    validations:
+      required: true
+  - type: input
+    id: terraform-version
+    attributes:
+      label: Terraform or OpenTofu version
+      placeholder: Terraform 1.14.3
+    validations:
+      required: true
+  - type: textarea
+    id: config
+    attributes:
+      label: Configuration
+      description: The smallest configuration that reproduces the problem. Remove credentials.
+      render: hcl
+    validations:
+      required: true
+  - type: textarea
+    id: expected
+    attributes:
+      label: Expected behaviour
+    validations:
+      required: true
+  - type: textarea
+    id: actual
+    attributes:
+      label: Actual behaviour
+      description: Include the error and, if relevant, the WEDOS result code and request_id from the message.
+    validations:
+      required: true
+  - type: textarea
+    id: debug
+    attributes:
+      label: Debug output
+      description: Output of the failing command with TF_LOG=DEBUG, with credentials removed.
+      render: shell
