@@ -1,0 +1,47 @@
+---
+page_title: "Provider: WEDOS"
+description: |-
+  Manage WEDOS DNS zones and records through the WEDOS HTTP REST API v2.
+---
+
+# WEDOS Provider
+
+The WEDOS provider manages DNS zones and records in [WEDOS DNS](https://www.wedos.cz/) through the
+[WEDOS HTTP REST API v2](https://kb.wedos.global/api-dns/).
+
+This provider is maintained by [Skip Pay](https://github.com/skip-pay) and is not affiliated with
+or endorsed by WEDOS Internet, a.s.
+
+## Authentication
+
+Create an API client in the WEDOS customer administration (HTTP REST API section) with the `wdns`
+permission scope. The provider accepts either:
+
+- the client ID and client secret (`client_id`, `client_secret`), from which it requests and
+  renews OAuth2 tokens itself, or
+- a bearer token generated for the client in the administration (`access_token`).
+
+Prefer the environment variables `WEDOS_CLIENT_ID`, `WEDOS_CLIENT_SECRET` or `WEDOS_ACCESS_TOKEN`
+over credentials in configuration. If the API client restricts source IP addresses, run Terraform
+from an allowed address.
+
+## Example Usage
+
+{{ tffile "examples/provider/provider.tf" }}
+
+## Choosing a resource for records
+
+| Resource | Manages | Use when |
+| --- | --- | --- |
+| `wedos_dns_record_set` | all values of one name and type | records of a zone are managed from several places, or only some records are in Terraform |
+| `wedos_dns_records_exclusive` | every record of the zone except the apex NS records | Terraform owns the whole zone; one commit per apply |
+
+Use one style per zone, not both.
+
+## WEDOS behaviour to know
+
+Changes are not atomic and are published by WEDOS in a five-minute cycle; TTL must be between
+300 and 172800 seconds; some values are normalised by WEDOS. See the
+[WEDOS API behaviour](guides/wedos-api-behaviour) guide before managing production zones.
+
+{{ .SchemaMarkdown | trimspace }}
