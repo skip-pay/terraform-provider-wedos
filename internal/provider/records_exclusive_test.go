@@ -75,11 +75,11 @@ resource "wedos_dns_records_exclusive" "z" {
 				Check: resource.ComposeAggregateTestCheckFunc(
 					resource.TestCheckResourceAttr("wedos_dns_records_exclusive.z", "id", "example.cz"),
 					resource.TestCheckResourceAttr("wedos_dns_records_exclusive.z", "record_sets.#", "5"),
-					checkPublished(s, "example.cz", "", "ALIAS", "300 d111111abcdef8.cloudfront.net"),
-					checkPublished(s, "example.cz", "", "MX", "3600 10 mx1.example.net", "3600 20 mx2.example.net"),
-					checkPublished(s, "example.cz", "", "TXT", "3600 v=spf1 -all"),
-					checkPublished(s, "example.cz", "www", "CNAME", "300 d111111abcdef8.cloudfront.net"),
-					checkPublished(s, "example.cz", "api", "A", "300 192.0.2.10", "300 192.0.2.11"),
+					checkPublished(s, "", "ALIAS", "300 d111111abcdef8.cloudfront.net"),
+					checkPublished(s, "", "MX", "3600 10 mx1.example.net", "3600 20 mx2.example.net"),
+					checkPublished(s, "", "TXT", "3600 v=spf1 -all"),
+					checkPublished(s, "www", "CNAME", "300 d111111abcdef8.cloudfront.net"),
+					checkPublished(s, "api", "A", "300 192.0.2.10", "300 192.0.2.11"),
 					// One commit for the new zone, one for all its records.
 					commits.check(2),
 				),
@@ -89,12 +89,12 @@ resource "wedos_dns_records_exclusive" "z" {
 				Config:    v2,
 				Check: resource.ComposeAggregateTestCheckFunc(
 					resource.TestCheckResourceAttr("wedos_dns_records_exclusive.z", "record_sets.#", "5"),
-					checkPublished(s, "example.cz", "", "MX", "600 10 mx1.example.net", "600 20 mx2.example.net"),
-					checkPublished(s, "example.cz", "", "TXT"),
-					checkPublished(s, "example.cz", "www", "CNAME"),
-					checkPublished(s, "example.cz", "www", "A", "300 192.0.2.80"),
-					checkPublished(s, "example.cz", "api", "A", "300 192.0.2.10", "300 192.0.2.12"),
-					checkPublished(s, "example.cz", "mail", "A", "300 192.0.2.25"),
+					checkPublished(s, "", "MX", "600 10 mx1.example.net", "600 20 mx2.example.net"),
+					checkPublished(s, "", "TXT"),
+					checkPublished(s, "www", "CNAME"),
+					checkPublished(s, "www", "A", "300 192.0.2.80"),
+					checkPublished(s, "api", "A", "300 192.0.2.10", "300 192.0.2.12"),
+					checkPublished(s, "mail", "A", "300 192.0.2.25"),
 					commits.check(1),
 				),
 			},
@@ -112,7 +112,7 @@ resource "wedos_dns_records_exclusive" "z" {
 				},
 				Config: v2,
 				Check: resource.ComposeAggregateTestCheckFunc(
-					checkPublished(s, "example.cz", "rogue", "TXT"),
+					checkPublished(s, "rogue", "TXT"),
 					commits.check(1),
 				),
 			},
@@ -148,8 +148,8 @@ resource "wedos_dns_records_exclusive" "z" {
 		ProtoV6ProviderFactories: factories,
 		// Destroying the resource leaves the records in the zone.
 		CheckDestroy: resource.ComposeAggregateTestCheckFunc(
-			checkPublished(s, "example.cz", "www", "A", "300 192.0.2.80"),
-			checkPublished(s, "example.cz", "legacy", "A", "3600 192.0.2.99"),
+			checkPublished(s, "www", "A", "300 192.0.2.80"),
+			checkPublished(s, "legacy", "A", "3600 192.0.2.99"),
 		),
 		Steps: []resource.TestStep{
 			{
@@ -160,17 +160,17 @@ resource "wedos_dns_records_exclusive" "z" {
 				Config: withLegacy,
 				Check: resource.ComposeAggregateTestCheckFunc(
 					resource.TestCheckResourceAttr("wedos_dns_records_exclusive.z", "record_sets.#", "2"),
-					checkPublished(s, "example.cz", "www", "A", "300 192.0.2.80"),
+					checkPublished(s, "www", "A", "300 192.0.2.80"),
 					// Apex NS is neither in state nor touched.
-					checkPublished(s, "example.cz", "", "NS", "86400 ns.wedos.cz.", "86400 ns.wedos.net."),
+					checkPublished(s, "", "NS", "86400 ns.wedos.cz.", "86400 ns.wedos.net."),
 				),
 			},
 			{
 				// Once managed, dropping a record set from the config deletes it.
 				Config: withoutLegacy,
 				Check: resource.ComposeAggregateTestCheckFunc(
-					checkPublished(s, "example.cz", "legacy", "A"),
-					checkPublished(s, "example.cz", "", "NS", "86400 ns.wedos.cz.", "86400 ns.wedos.net."),
+					checkPublished(s, "legacy", "A"),
+					checkPublished(s, "", "NS", "86400 ns.wedos.cz.", "86400 ns.wedos.net."),
 				),
 			},
 			{
@@ -236,14 +236,14 @@ resource "wedos_dns_records_exclusive" "z" {
 		Steps: []resource.TestStep{
 			{
 				Config: cfg(`{ name = "", type = "A", ttl = 300, records = ["203.0.113.80"] }`),
-				Check:  checkPublished(s, "example.cz", "", "A", "300 203.0.113.80"),
+				Check:  checkPublished(s, "", "A", "300 203.0.113.80"),
 			},
 			{
 				Config: cfg(`{ name = "", type = "ALIAS", ttl = 300, records = ["d111111abcdef8.cloudfront.net"] }`),
 				Check: resource.ComposeAggregateTestCheckFunc(
-					checkPublished(s, "example.cz", "", "A"),
-					checkPublished(s, "example.cz", "", "ALIAS", "300 d111111abcdef8.cloudfront.net"),
-					checkPublished(s, "example.cz", "", "TXT", "3600 v=spf1 -all"),
+					checkPublished(s, "", "A"),
+					checkPublished(s, "", "ALIAS", "300 d111111abcdef8.cloudfront.net"),
+					checkPublished(s, "", "TXT", "3600 v=spf1 -all"),
 				),
 			},
 		},

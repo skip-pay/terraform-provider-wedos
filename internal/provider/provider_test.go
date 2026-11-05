@@ -31,9 +31,9 @@ provider "wedos" {
 `, s.URL, s.ClientID, s.ClientSecret)
 }
 
-func publishedValues(s *wedosmock.Server, zone, name, typ string) []string {
+func publishedValues(s *wedosmock.Server, name, typ string) []string {
 	var out []string
-	for _, r := range s.PublishedRows(zone) {
+	for _, r := range s.PublishedRows(testZone) {
 		if r.Name == name && r.Type == typ {
 			out = append(out, fmt.Sprintf("%d %s", r.TTL, r.Rdata))
 		}
@@ -41,11 +41,14 @@ func publishedValues(s *wedosmock.Server, zone, name, typ string) []string {
 	return out
 }
 
-func checkPublished(s *wedosmock.Server, zone, name, typ string, want ...string) resource.TestCheckFunc {
+// testZone is the zone every acceptance test works in.
+const testZone = "example.cz"
+
+func checkPublished(s *wedosmock.Server, name, typ string, want ...string) resource.TestCheckFunc {
 	return func(*terraform.State) error {
-		got := publishedValues(s, zone, name, typ)
+		got := publishedValues(s, name, typ)
 		if strings.Join(got, ",") != strings.Join(want, ",") {
-			return fmt.Errorf("published %s %s in %s: got %v, want %v", name, typ, zone, got, want)
+			return fmt.Errorf("published %s %s in %s: got %v, want %v", name, typ, testZone, got, want)
 		}
 		return nil
 	}
@@ -152,9 +155,9 @@ resource "wedos_dns_record_set" "apex_alias" {
 					resource.TestCheckResourceAttr("wedos_dns_record_set.www", "id", "example.cz/www/A"),
 					resource.TestCheckResourceAttr("wedos_dns_record_set.www", "fqdn", "www.example.cz"),
 					resource.TestCheckResourceAttr("wedos_dns_record_set.apex_txt", "id", "example.cz/@/TXT"),
-					checkPublished(s, "example.cz", "www", "A", "300 192.0.2.1", "300 192.0.2.2"),
-					checkPublished(s, "example.cz", "", "TXT", "3600 google-site-verification=abc", "3600 v=spf1 -all"),
-					checkPublished(s, "example.cz", "", "ALIAS", "300 d111111abcdef8.cloudfront.net"),
+					checkPublished(s, "www", "A", "300 192.0.2.1", "300 192.0.2.2"),
+					checkPublished(s, "", "TXT", "3600 google-site-verification=abc", "3600 v=spf1 -all"),
+					checkPublished(s, "", "ALIAS", "300 d111111abcdef8.cloudfront.net"),
 				),
 			},
 			{
@@ -183,9 +186,9 @@ resource "wedos_dns_record_set" "apex_alias" {
   records = ["d222222abcdef8.cloudfront.net."]
 }`,
 				Check: resource.ComposeAggregateTestCheckFunc(
-					checkPublished(s, "example.cz", "www", "A", "600 192.0.2.1", "600 192.0.2.3", "600 192.0.2.4"),
-					checkPublished(s, "example.cz", "", "TXT", "3600 v=spf1 -all"),
-					checkPublished(s, "example.cz", "", "ALIAS", "300 d222222abcdef8.cloudfront.net"),
+					checkPublished(s, "www", "A", "600 192.0.2.1", "600 192.0.2.3", "600 192.0.2.4"),
+					checkPublished(s, "", "TXT", "3600 v=spf1 -all"),
+					checkPublished(s, "", "ALIAS", "300 d222222abcdef8.cloudfront.net"),
 					resource.TestCheckNoResourceAttr("wedos_dns_record_set.apex_txt", "author_comment"),
 				),
 			},
@@ -214,9 +217,9 @@ resource "wedos_dns_record_set" "www" {
   records = ["192.0.2.1", "192.0.2.3", "192.0.2.4"]
 }`,
 				Check: resource.ComposeAggregateTestCheckFunc(
-					checkPublished(s, "example.cz", "www", "A", "600 192.0.2.1", "600 192.0.2.3", "600 192.0.2.4"),
-					checkPublished(s, "example.cz", "", "TXT"),
-					checkPublished(s, "example.cz", "", "ALIAS"),
+					checkPublished(s, "www", "A", "600 192.0.2.1", "600 192.0.2.3", "600 192.0.2.4"),
+					checkPublished(s, "", "TXT"),
+					checkPublished(s, "", "ALIAS"),
 				),
 			},
 		},
@@ -241,10 +244,10 @@ resource "wedos_dns_record_set" "app" {
 	resource.Test(t, resource.TestCase{
 		ProtoV6ProviderFactories: factories,
 		Steps: []resource.TestStep{
-			{Config: cfg("lb-1.example.net."), Check: checkPublished(s, "example.cz", "app", "CNAME", "300 lb-1.example.net")},
+			{Config: cfg("lb-1.example.net."), Check: checkPublished(s, "app", "CNAME", "300 lb-1.example.net")},
 			// Adding a second CNAME before deleting the first would be rejected
 			// with 2313; the provider rewrites the row in place instead.
-			{Config: cfg("lb-2.example.net."), Check: checkPublished(s, "example.cz", "app", "CNAME", "300 lb-2.example.net")},
+			{Config: cfg("lb-2.example.net."), Check: checkPublished(s, "app", "CNAME", "300 lb-2.example.net")},
 		},
 	})
 }
@@ -270,7 +273,7 @@ resource "wedos_dns_record_set" "mail" {
 		ProtoV6ProviderFactories: factories,
 		Steps: []resource.TestStep{
 			{Config: cfg(false), ExpectError: regexp.MustCompile(`already has 1 A row`)},
-			{Config: cfg(true), Check: checkPublished(s, "example.cz", "mail", "A", "300 192.0.2.26")},
+			{Config: cfg(true), Check: checkPublished(s, "mail", "A", "300 192.0.2.26")},
 		},
 	})
 }
@@ -366,10 +369,10 @@ resource "wedos_dns_record_set" "wild" {
   records = ["192.0.2.50"]
 }`,
 			Check: resource.ComposeAggregateTestCheckFunc(
-				checkPublished(s, "example.cz", "", "MX", "3600 10 mx1.example.net", "3600 20 mx2.example.net"),
-				checkPublished(s, "example.cz", "docs", "CNAME", "300 docs.example.net"),
+				checkPublished(s, "", "MX", "3600 10 mx1.example.net", "3600 20 mx2.example.net"),
+				checkPublished(s, "docs", "CNAME", "300 docs.example.net"),
 				resource.TestCheckTypeSetElemAttr("wedos_dns_record_set.cname", "records.*", "Docs.Example.NET."),
-				checkPublished(s, "example.cz", "*.apps", "A", "300 192.0.2.50"),
+				checkPublished(s, "*.apps", "A", "300 192.0.2.50"),
 			),
 		}},
 	})
@@ -413,7 +416,7 @@ resource "wedos_dns_record_set" "www" {
 				},
 				Config: cfg(""),
 				Check: resource.ComposeAggregateTestCheckFunc(
-					checkPublished(s, "example.cz", "www", "A", "300 192.0.2.1"),
+					checkPublished(s, "www", "A", "300 192.0.2.1"),
 					func(*terraform.State) error {
 						if got := s.Calls("GET /domains/{domain}") - reads; got < 5 {
 							return fmt.Errorf("want at least 5 zone reads while waiting, got %d", got)
@@ -426,7 +429,7 @@ resource "wedos_dns_record_set" "www" {
 				// A reload that never finishes is a warning, not a failed apply.
 				PreConfig: func() { s.ReloadPolls = 1_000_000 },
 				Config:    strings.Replace(cfg(`reload_timeout = "50ms"`), `"192.0.2.1"`, `"192.0.2.2"`, 1),
-				Check:     checkPublished(s, "example.cz", "www", "A", "300 192.0.2.2"),
+				Check:     checkPublished(s, "www", "A", "300 192.0.2.2"),
 			},
 		},
 	})
@@ -459,7 +462,7 @@ resource "wedos_dns_record_set" "www" {
 			{
 				PreConfig: func() { s.FailRdata = "" },
 				Config:    cfg,
-				Check:     checkPublished(s, "example.cz", "www", "A", "300 192.0.2.1", "300 192.0.2.99"),
+				Check:     checkPublished(s, "www", "A", "300 192.0.2.1", "300 192.0.2.99"),
 			},
 		},
 	})

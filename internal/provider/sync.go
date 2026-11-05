@@ -151,10 +151,6 @@ func (p *syncPlan) removeRows(rows []client.Row) {
 	p.deletes = append(p.deletes, rows...)
 }
 
-func (p *syncPlan) empty() bool {
-	return len(p.rewrites)+len(p.adds)+len(p.updates)+len(p.deletes) == 0
-}
-
 // typesConflict reports whether rows of types a and b cannot exist at the same
 // name: CNAME excludes every other type (2313), ALIAS excludes A and AAAA
 // (2329, live API).
